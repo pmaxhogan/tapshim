@@ -22,11 +22,10 @@ jobs:
         if: steps.meta.outputs.update-type == 'version-update:semver-minor' || steps.meta.outputs.update-type == 'version-update:semver-patch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr review --approve "$PR_URL"
-          gh pr merge --auto --squash "$PR_URL"
-        # Auto-merge only completes once the required CI checks pass; a major
-        # bump is left for a human.
+        # No approval step: branch protection requires passing checks, not
+        # reviews, and GITHUB_TOKEN cannot approve unless a repo setting is on.
+        # Auto-merge completes once the required CI checks pass.
+        run: gh pr merge --auto --squash "$PR_URL"
 
       - name: Leave majors for a human
         if: steps.meta.outputs.update-type == 'version-update:semver-major'
