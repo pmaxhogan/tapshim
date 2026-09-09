@@ -3,6 +3,11 @@ name: Release
 on:
   push:
     branches: [main]
+  # Merges performed with the workflow token (Dependabot auto-merge) do not
+  # trigger push workflows, so a daily pass releases any HEAD not yet tagged.
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,8 +17,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check:
+    name: Is HEAD already released?
+    runs-on: ubuntu-latest
+    outputs:
+      needed: ${{ steps.probe.outputs.needed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: probe
+        run: |
+          if [ -n "$(git tag --points-at HEAD 'v*')" ]; then
+            echo "HEAD is already tagged: $(git tag --points-at HEAD 'v*' | tr '\n' ' ')"
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          fi
+
   release:
     name: Build signed APK and publish release
+    needs: check
+    if: needs.check.outputs.needed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
