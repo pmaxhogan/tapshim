@@ -32,6 +32,7 @@ jobs:
         if: steps.meta.outputs.update-type == 'version-update:semver-major'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr comment "$PR_URL" --body "Major version bump: not auto-merging. Review and merge by hand."
+        run: |
+          gh pr comment "$PR_URL" --body "Major version bump, not auto-merging. Review and merge by hand."
     env:
       PR_URL: ${{ github.event.pull_request.html_url }}

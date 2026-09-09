@@ -32,9 +32,11 @@ jobs:
         run: |
           base="$(tr -d '[:space:]' < VERSION)"
           patch="$(git rev-list --count HEAD)"
-          echo "name=${base}.${patch}" >> "$GITHUB_OUTPUT"
-          echo "patch=${patch}" >> "$GITHUB_OUTPUT"
-          echo "tag=v${base}.${patch}" >> "$GITHUB_OUTPUT"
+          {
+            echo "name=${base}.${patch}"
+            echo "patch=${patch}"
+            echo "tag=v${base}.${patch}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Gate on tests and coverage
         run: ./gradlew --no-daemon testDebugUnitTest koverVerifyDebug
@@ -55,7 +57,7 @@ jobs:
 
       - name: Verify signature
         run: |
-          tool="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          tool="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)/apksigner"
           "$tool" verify --print-certs "tapshim-${{ steps.version.outputs.name }}.apk"
 
       - name: Release notes
