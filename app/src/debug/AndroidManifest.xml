@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <receiver
+            android:name=".debug.SimulateTapReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
+            <intent-filter>
+                <action android:name="dev.maxhogan.tapshim.debug.SIMULATE_TAP" />
+                <action android:name="dev.maxhogan.tapshim.debug.CONNECT" />
+                <action android:name="dev.maxhogan.tapshim.debug.DISCONNECT" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

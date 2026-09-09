@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build signed APK and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compute version
+        id: version
+        run: |
+          base="$(tr -d '[:space:]' < VERSION)"
+          patch="$(git rev-list --count HEAD)"
+          echo "name=${base}.${patch}" >> "$GITHUB_OUTPUT"
+          echo "patch=${patch}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${base}.${patch}" >> "$GITHUB_OUTPUT"
+
+      - name: Gate on tests and coverage
+        run: ./gradlew --no-daemon testDebugUnitTest koverVerifyDebug
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: Build signed release APK
+        env:
+          TAPSHIM_PATCH: ${{ steps.version.outputs.patch }}
+          TAPSHIM_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          TAPSHIM_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          TAPSHIM_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          TAPSHIM_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "tapshim-${{ steps.version.outputs.name }}.apk"
+
+      - name: Verify signature
+        run: |
+          tool="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          "$tool" verify --print-certs "tapshim-${{ steps.version.outputs.name }}.apk"
+
+      - name: Release notes
+        id: notes
+        run: |
+          prev="$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)"
+          {
+            echo "## TapShim ${{ steps.version.outputs.name }}"
+            echo
+            if [ -n "$prev" ]; then
+              echo "Changes since $prev:"
+              echo
+              git log --no-merges --pretty='- %s (%h)' "$prev"..HEAD
+            else
+              echo "First release."
+            fi
+          } > notes.md
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "tapshim-${{ steps.version.outputs.name }}.apk" \
+            --title "TapShim ${{ steps.version.outputs.name }}" \
+            --notes-file notes.md \
+            --target "$GITHUB_SHA"
