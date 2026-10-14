@@ -26,7 +26,7 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Unit tests, coverage report, coverage gate
         run: ./gradlew --no-daemon testDebugUnitTest koverXmlReportDebug koverHtmlReportDebug koverVerifyDebug koverLogDebug
@@ -58,7 +58,7 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - run: ./gradlew --no-daemon assembleDebug
 
