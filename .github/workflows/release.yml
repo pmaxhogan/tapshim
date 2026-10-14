@@ -23,7 +23,7 @@ jobs:
     outputs:
       needed: ${{ steps.probe.outputs.needed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - id: probe
@@ -41,7 +41,7 @@ jobs:
     if: needs.check.outputs.needed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
